@@ -191,7 +191,9 @@ void SJF_p(Process processes[], int n) {
                 processes[minIndex].startTime = current;
             }
             if(minIndex != prev && prev != -1){
-                addGanttLog(processes[prev].pid, processes[prev].startTime, current);
+                if(processes[prev].remainingTime != 0){
+                    addGanttLog(processes[prev].pid, processes[prev].startTime, current);
+                }
                 processes[minIndex].startTime = current;
             }
             current++;
@@ -256,8 +258,10 @@ void Priority_p(Process processes[], int n) {
             if (processes[minIndex].startTime == -1) {
                 processes[minIndex].startTime = current;
             }
-            if(minIndex != prev && prev != -1){       //preempt된 상황
-                addGanttLog(processes[prev].pid, processes[prev].startTime, current);
+            if(minIndex != prev && prev != -1){
+                if(processes[prev].remainingTime != 0){
+                    addGanttLog(processes[prev].pid, processes[prev].startTime, current);
+                }
                 processes[minIndex].startTime = current;
             }
             current++;
@@ -269,7 +273,7 @@ void Priority_p(Process processes[], int n) {
                 completed++;
                 addGanttLog(processes[minIndex].pid, processes[minIndex].startTime, current);
             }
-
+            
         } 
         else {
             current++;      //아무 process도 실행되지 않음
@@ -282,31 +286,36 @@ void RR(Process processes[], int n, int quantum) {
     clearGanttLog();
     int current = 0;
     int completed = 0;
-    int remainingBurstTime[n];
+    int emptycheck;
 
-    for (int i = 0; i < n; i++) {
-        remainingBurstTime[i] = processes[i].burstTime;
-    }
     while (completed != n) {
+        emptycheck = 0;
         for (int i = 0; i < n; i++) {
-            if (remainingBurstTime[i] > 0 && processes[i].arrival <= current) {
-                if (remainingBurstTime[i] == processes[i].burstTime) {
+            if (processes[i].remainingTime > 0 && processes[i].arrival <= current) {
+                if (processes[i].remainingTime == processes[i].burstTime) {
                     processes[i].startTime = current;
                 }
-                if (remainingBurstTime[i] > quantum) {
+
+                if (processes[i].remainingTime > quantum) {
                     current += quantum;
-                    remainingBurstTime[i] -= quantum;
+                    processes[i].remainingTime -= quantum;
                     addGanttLog(processes[i].pid, current - quantum, current);
                 } else {
-                    current += remainingBurstTime[i];
-                    addGanttLog(processes[i].pid, current - remainingBurstTime[i], current);
+                    current += processes[i].remainingTime;
+                    addGanttLog(processes[i].pid, current - processes[i].remainingTime, current);
                     processes[i].waitingTime = current - processes[i].arrival - processes[i].burstTime;
                     processes[i].turnAroundTime = current - processes[i].arrival;
-                    remainingBurstTime[i] = 0;
+                    processes[i].remainingTime = 0;
                     processes[i].endTime = current;
                     completed++;
                 }
             }
+            else{
+                emptycheck++;
+            }
+        }
+        if(emptycheck == n){
+            current++;
         }
     }
 }
@@ -330,7 +339,7 @@ void Evaluation(Process processes[], int n) {
     avgWaitingTime = (float)totalWaitingTime / n;
     avgTurnAroundTime = (float)totalTurnAroundTime / n;
     printf("FCFS - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
-    printGanttChart(processesCopy, n);
+    printGanttChart();
 
     // SJF
     for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
@@ -344,7 +353,7 @@ void Evaluation(Process processes[], int n) {
     avgWaitingTime = (float)totalWaitingTime / n;
     avgTurnAroundTime = (float)totalTurnAroundTime / n;
     printf("SJF - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
-    printGanttChart(processesCopy, n);
+    printGanttChart();
 
     // preemptive SJF 
     for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
@@ -358,7 +367,7 @@ void Evaluation(Process processes[], int n) {
     avgWaitingTime = (float)totalWaitingTime / n;
     avgTurnAroundTime = (float)totalTurnAroundTime / n;
     printf("Preemptive SJF - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
-    printGanttChart(processesCopy, n);
+    printGanttChart();
 
     // non-preemptive Priority Scheduling
     for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
@@ -372,7 +381,7 @@ void Evaluation(Process processes[], int n) {
     avgWaitingTime = (float)totalWaitingTime / n;
     avgTurnAroundTime = (float)totalTurnAroundTime / n;
     printf("Non-Preemptive Priority - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
-    printGanttChart(processesCopy, n);
+    printGanttChart();
 
     // preemptive Priority Scheduling
     for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
@@ -386,7 +395,7 @@ void Evaluation(Process processes[], int n) {
     avgWaitingTime = (float)totalWaitingTime / n;
     avgTurnAroundTime = (float)totalTurnAroundTime / n;
     printf("Preemptive Priority - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
-    printGanttChart(processesCopy, n);
+    printGanttChart();
 
     // Round Robin
     for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
@@ -400,7 +409,7 @@ void Evaluation(Process processes[], int n) {
     avgWaitingTime = (float)totalWaitingTime / n;
     avgTurnAroundTime = (float)totalTurnAroundTime / n;
     printf("Round Robin - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
-    printGanttChart(processesCopy, n);
+    printGanttChart();
 }
 
 int main() {
