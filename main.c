@@ -33,7 +33,6 @@ int waitingCount = 0;
 int logCount = 0;
 
 void Create_Process(Process processes[], int n) {
-    // 시드 초기화
     srand(time(NULL));
     
     for (int i = 0; i < n; i++) {
@@ -74,16 +73,24 @@ void enqueueWaiting(Process p) {
 void Config(Process processes[], int n) {
     readyCount = 0;
     waitingCount = 0;
+    int fc = 0;         //먼저 온 process index
     
-    for (int i = 0; i < n; i++) {
-        // 도착 시간에 따라 준비 큐에 추가
-        if (processes[i].arrival <= 10) {
-            enqueueReady(processes[i]);
-        } 
-        else {
-            enqueueWaiting(processes[i]);
-        }
+    for (int i = 0; i < n; i++) {           
+        enqueueReady(processes[fc]);
     }
+
+    for (int i = 0; i < n-1; i++){
+        fc = i;
+        for(int j = i+1; j < n; j++){
+            if(readyQueue[j].arrival < readyQueue[fc].arrival){
+                fc = j;
+            }
+        }
+        Process temp = readyQueue[i];
+        readyQueue[i] = readyQueue[fc];
+        readyQueue[fc] = temp;
+    }
+
 }
 
 void clearGanttLog() {
@@ -102,7 +109,7 @@ void addGanttLog(int pid, int startTime, int endTime){
     }
 }
 
-// Gantt 차트를 출력하는 함수
+// Gantt 차트 출력
 void printGanttChart() {
     printf("Gantt Chart:\n|");
     for (int i = 0; i < logCount; i++) {
@@ -170,6 +177,7 @@ void SJF(Process processes[], int n) {
 void SJF_p(Process processes[], int n) {
     clearGanttLog();
     int completed = 0, current = 0, minIndex;
+    int prev = -1;
     while (completed != n) {
         minIndex = -1;
         for (int i = 0; i < n; i++) {
@@ -182,6 +190,10 @@ void SJF_p(Process processes[], int n) {
             if (processes[minIndex].startTime == -1) {
                 processes[minIndex].startTime = current;
             }
+            if(minIndex != prev && prev != -1){
+                addGanttLog(processes[prev].pid, processes[prev].startTime, current);
+                processes[minIndex].startTime = current;
+            }
             current++;
             processes[minIndex].remainingTime--;
             if (processes[minIndex].remainingTime == 0) {
@@ -189,11 +201,12 @@ void SJF_p(Process processes[], int n) {
                 processes[minIndex].waitingTime = processes[minIndex].endTime - processes[minIndex].arrival - processes[minIndex].burstTime;
                 processes[minIndex].turnAroundTime = processes[minIndex].endTime - processes[minIndex].arrival;
                 completed++;
+                addGanttLog(processes[minIndex].pid, processes[minIndex].startTime, current);
             }
-            addGanttLog(processes[minIndex].pid, current - 1, current);
         } else {
             current++;
         }
+        prev = minIndex;
     }
 }
 
@@ -243,7 +256,7 @@ void Priority_p(Process processes[], int n) {
             if (processes[minIndex].startTime == -1) {
                 processes[minIndex].startTime = current;
             }
-            if(minIndex != prev){       //preempt된 상황
+            if(minIndex != prev && prev != -1){       //preempt된 상황
                 addGanttLog(processes[prev].pid, processes[prev].startTime, current);
                 processes[minIndex].startTime = current;
             }
@@ -276,7 +289,7 @@ void RR(Process processes[], int n, int quantum) {
     }
     while (completed != n) {
         for (int i = 0; i < n; i++) {
-            if (remainingBurstTime[i] > 0) {
+            if (remainingBurstTime[i] > 0 && processes[i].arrival <= current) {
                 if (remainingBurstTime[i] == processes[i].burstTime) {
                     processes[i].startTime = current;
                 }
@@ -306,7 +319,7 @@ void Evaluation(Process processes[], int n) {
     int quantum = 4;  // Round Robin time quantum
 
     // FCFS
-    for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
+    for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
     FCFS(processesCopy, n);
     totalWaitingTime = 0;
     totalTurnAroundTime = 0;
@@ -320,7 +333,7 @@ void Evaluation(Process processes[], int n) {
     printGanttChart(processesCopy, n);
 
     // SJF
-    for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
+    for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
     SJF(processesCopy, n);
     totalWaitingTime = 0;
     totalTurnAroundTime = 0;
@@ -334,7 +347,7 @@ void Evaluation(Process processes[], int n) {
     printGanttChart(processesCopy, n);
 
     // preemptive SJF 
-    for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
+    for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
     SJF_p(processesCopy, n);
     totalWaitingTime = 0;
     totalTurnAroundTime = 0;
@@ -348,7 +361,7 @@ void Evaluation(Process processes[], int n) {
     printGanttChart(processesCopy, n);
 
     // non-preemptive Priority Scheduling
-    for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
+    for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
     Priority(processesCopy, n);
     totalWaitingTime = 0;
     totalTurnAroundTime = 0;
@@ -362,7 +375,7 @@ void Evaluation(Process processes[], int n) {
     printGanttChart(processesCopy, n);
 
     // preemptive Priority Scheduling
-    for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
+    for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
     Priority_p(processesCopy, n);
     totalWaitingTime = 0;
     totalTurnAroundTime = 0;
@@ -376,7 +389,7 @@ void Evaluation(Process processes[], int n) {
     printGanttChart(processesCopy, n);
 
     // Round Robin
-    for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
+    for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
     RR(processesCopy, n, quantum);
     totalWaitingTime = 0;
     totalTurnAroundTime = 0;
