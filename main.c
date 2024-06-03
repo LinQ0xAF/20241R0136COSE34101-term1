@@ -46,7 +46,7 @@ void enqueueReady(Process p) {
         readyQueue[readyCount++] = p;
     } 
     else {
-        printf("준비 큐가 가득 찼습니다.\n");
+        printf("Ready queue is full.\n");
     }
 }
 
@@ -56,7 +56,7 @@ void enqueueWaiting(Process p) {
         waitingQueue[waitingCount++] = p;
     } 
     else {
-        printf("대기 큐가 가득 찼습니다.\n");
+        printf("Waiting queue is full.\n");
     }
 }
 
@@ -241,7 +241,7 @@ void printGanttChart(Process processes[], int n) {
 void Evaluation(Process processes[], int n) {
     Process processesCopy[n];
     int totalWaitingTime, totalTurnAroundTime;
-    float averageWaitingTime, averageTurnAroundTime;
+    float avgWaitingTime, avgTurnAroundTime;
     int quantum = 4;  // Round Robin 타임 퀀텀
 
     // FCFS
@@ -253,12 +253,12 @@ void Evaluation(Process processes[], int n) {
         totalWaitingTime += processesCopy[i].waitingTime;
         totalTurnAroundTime += processesCopy[i].turnAroundTime;
     }
-    averageWaitingTime = (float)totalWaitingTime / n;
-    averageTurnAroundTime = (float)totalTurnAroundTime / n;
-    printf("FCFS - 평균 대기 시간: %.2f, 평균 턴어라운드 시간: %.2f\n", averageWaitingTime, averageTurnAroundTime);
+    avgWaitingTime = (float)totalWaitingTime / n;
+    avgTurnAroundTime = (float)totalTurnAroundTime / n;
+    printf("FCFS - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
     printGanttChart(processesCopy, n);
 
-    // SJN
+    // SJF
     for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
     SJF(processesCopy, n);
     totalWaitingTime = 0;
@@ -267,12 +267,12 @@ void Evaluation(Process processes[], int n) {
         totalWaitingTime += processesCopy[i].waitingTime;
         totalTurnAroundTime += processesCopy[i].turnAroundTime;
     }
-    averageWaitingTime = (float)totalWaitingTime / n;
-    averageTurnAroundTime = (float)totalTurnAroundTime / n;
-    printf("SJN - 평균 대기 시간: %.2f, 평균 턴어라운드 시간: %.2f\n", averageWaitingTime, averageTurnAroundTime);
+    avgWaitingTime = (float)totalWaitingTime / n;
+    avgTurnAroundTime = (float)totalTurnAroundTime / n;
+    printf("SJF - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
     printGanttChart(processesCopy, n);
 
-    // 선점형 SJN (SRTF)
+    // preemptive SJF 
     for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
     SJF_p(processesCopy, n);
     totalWaitingTime = 0;
@@ -281,12 +281,12 @@ void Evaluation(Process processes[], int n) {
         totalWaitingTime += processesCopy[i].waitingTime;
         totalTurnAroundTime += processesCopy[i].turnAroundTime;
     }
-    averageWaitingTime = (float)totalWaitingTime / n;
-    averageTurnAroundTime = (float)totalTurnAroundTime / n;
-    printf("SRTF - 평균 대기 시간: %.2f, 평균 턴어라운드 시간: %.2f\n", averageWaitingTime, averageTurnAroundTime);
+    avgWaitingTime = (float)totalWaitingTime / n;
+    avgTurnAroundTime = (float)totalTurnAroundTime / n;
+    printf("Preemptive SJF - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
     printGanttChart(processesCopy, n);
 
-    // 비선점형 Priority Scheduling
+    // non-preemptive Priority Scheduling
     for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
     Priority(processesCopy, n);
     totalWaitingTime = 0;
@@ -295,12 +295,12 @@ void Evaluation(Process processes[], int n) {
         totalWaitingTime += processesCopy[i].waitingTime;
         totalTurnAroundTime += processesCopy[i].turnAroundTime;
     }
-    averageWaitingTime = (float)totalWaitingTime / n;
-    averageTurnAroundTime = (float)totalTurnAroundTime / n;
-    printf("Priority (Non-Preemptive) - 평균 대기 시간: %.2f, 평균 턴어라운드 시간: %.2f\n", averageWaitingTime, averageTurnAroundTime);
+    avgWaitingTime = (float)totalWaitingTime / n;
+    avgTurnAroundTime = (float)totalTurnAroundTime / n;
+    printf("Non-Preemptive Priority - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
     printGanttChart(processesCopy, n);
 
-    // 선점형 Priority Scheduling
+    // preemptive Priority Scheduling
     for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
     Priority_p(processesCopy, n);
     totalWaitingTime = 0;
@@ -309,9 +309,9 @@ void Evaluation(Process processes[], int n) {
         totalWaitingTime += processesCopy[i].waitingTime;
         totalTurnAroundTime += processesCopy[i].turnAroundTime;
     }
-    averageWaitingTime = (float)totalWaitingTime / n;
-    averageTurnAroundTime = (float)totalTurnAroundTime / n;
-    printf("Preemptive Priority - 평균 대기 시간: %.2f, 평균 턴어라운드 시간: %.2f\n", averageWaitingTime, averageTurnAroundTime);
+    avgWaitingTime = (float)totalWaitingTime / n;
+    avgTurnAroundTime = (float)totalTurnAroundTime / n;
+    printf("Preemptive Priority - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
     printGanttChart(processesCopy, n);
 
     // Round Robin
@@ -323,21 +323,21 @@ void Evaluation(Process processes[], int n) {
         totalWaitingTime += processesCopy[i].waitingTime;
         totalTurnAroundTime += processesCopy[i].turnAroundTime;
     }
-    averageWaitingTime = (float)totalWaitingTime / n;
-    averageTurnAroundTime = (float)totalTurnAroundTime / n;
-    printf("Round Robin - 평균 대기 시간: %.2f, 평균 턴어라운드 시간: %.2f\n", averageWaitingTime, averageTurnAroundTime);
+    avgWaitingTime = (float)totalWaitingTime / n;
+    avgTurnAroundTime = (float)totalTurnAroundTime / n;
+    printf("Round Robin - average Waiting Time: %.2f, average Turnaround Time: %.2f\n", avgWaitingTime, avgTurnAroundTime);
     printGanttChart(processesCopy, n);
 }
 
 int main() {
     int n, choice, quantum;
-    printf("프로세스 수를 입력하세요: ");
+    printf("Enter the number of Processes: ");
     scanf("%d", &n);
 
     Process processes[n];
     Create_Process(processes, n);
 
-    printf("PID\tAT\tBT\tIOT\tP\n");
+    printf("PID\tArrivalT\tBurstT\tIOBurstT\tPriority\n");
     for (int i = 0; i < n; i++) {
         printf("%d\t%d\t%d\t%d\t%d\n", processes[i].pid, processes[i].arrival, processes[i].burstTime, processes[i].ioBurstTime, processes[i].priority);
     }
