@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #define MAX_PROCESSES 100
+#define MAX_LOG_ENTRIES 1000
 
 typedef struct {
     int pid;
@@ -17,10 +19,18 @@ typedef struct {
     int endTime;
 } Process;
 
+typedef struct {
+    int pid;
+    int startTime;
+    int endTime;
+} GanttLog;
+
 Process readyQueue[MAX_PROCESSES];
 Process waitingQueue[MAX_PROCESSES];
+GanttLog ganttlog[MAX_LOG_ENTRIES];
 int readyCount = 0;
 int waitingCount = 0;
+int logCount = 0;
 
 void Create_Process(Process processes[], int n) {
     // 시드 초기화
@@ -76,7 +86,38 @@ void Config(Process processes[], int n) {
     }
 }
 
+void clearGanttLog() {
+    logCount = 0;
+}
+
+void addGanttLog(int pid, int startTime, int endTime){
+    if(logCount < MAX_LOG_ENTRIES){
+        ganttlog[logCount].pid = pid;
+        ganttlog[logCount].startTime = startTime;
+        ganttlog[logCount].endTime = endTime;
+        logCount++;
+    }
+    else {
+        printf("Gantt Chart Log is full.\n");
+    }
+}
+
+// Gantt 차트를 출력하는 함수
+void printGanttChart() {
+    printf("Gantt Chart:\n|");
+    for (int i = 0; i < logCount; i++) {
+        printf(" P%d |", ganttlog[i].pid);
+    }
+    printf("\n");
+
+    for (int i = 0; i < logCount; i++) {
+        printf("%d    ", ganttlog[i].startTime);
+    }
+    printf("%d\n", ganttlog[logCount-1].endTime);
+}
+
 void FCFS(Process processes[], int n) {
+    clearGanttLog();
     int current = 0;
     for (int i = 0; i < n; i++) {
         if (current < processes[i].arrival) {
@@ -87,26 +128,39 @@ void FCFS(Process processes[], int n) {
         processes[i].waitingTime = current - processes[i].arrival;
         processes[i].turnAroundTime = processes[i].waitingTime + processes[i].burstTime;
         current += processes[i].burstTime;
+        addGanttLog(processes[i].pid, processes[i].startTime, processes[i].endTime);
     }
 }
 
 void SJF(Process processes[], int n) {
+    clearGanttLog();
     int completed = 0, current = 0;
-    int minIndex;
+    int minIndex, shortestIndex, minBurst;
+
     while (completed != n) {
-        minIndex = -1;
+        shortestIndex = -1;
+        minBurst = 99999;
+
         for (int i = 0; i < n; i++) {
-            if (processes[i].arrival <= current && (minIndex == -1 || processes[i].burstTime < processes[minIndex].burstTime) && processes[i].turnAroundTime == 0) {
-                minIndex = i;
+            if (processes[i].arrival <= current && processes[i].remainingTime > 0) {
+                if(processes[i].burstTime < minBurst){
+                    minBurst = processes[i].burstTime;
+                    shortestIndex = i;
+                }
             }
         }
-        if (minIndex != -1) {
-            processes[minIndex].startTime = current;
-            current += processes[minIndex].burstTime;
-            processes[minIndex].waitingTime = current - processes[minIndex].arrival - processes[minIndex].burstTime;
-            processes[minIndex].turnAroundTime = processes[minIndex].waitingTime + processes[minIndex].burstTime;
-            processes[minIndex].endTime = current;
+
+        if (shortestIndex != -1) {
+            if(processes[shortestIndex].startTime == -1){
+                processes[shortestIndex].startTime = current;
+            }
+            current += processes[shortestIndex].burstTime;
+            processes[shortestIndex].remainingTime = 0;
+            processes[shortestIndex].endTime = current;
+            processes[shortestIndex].waitingTime = processes[shortestIndex].startTime - processes[shortestIndex].arrival;
+            processes[shortestIndex].turnAroundTime = processes[shortestIndex].endTime + processes[shortestIndex].arrival;
             completed++;
+            addGanttLog(processes[shortestIndex].pid, processes[shortestIndex].startTime, processes[shortestIndex].endTime);
         } else {
             current++;
         }
@@ -114,6 +168,7 @@ void SJF(Process processes[], int n) {
 }
 
 void SJF_p(Process processes[], int n) {
+    clearGanttLog();
     int completed = 0, current = 0, minIndex;
     while (completed != n) {
         minIndex = -1;
@@ -135,6 +190,7 @@ void SJF_p(Process processes[], int n) {
                 processes[minIndex].turnAroundTime = processes[minIndex].endTime - processes[minIndex].arrival;
                 completed++;
             }
+            addGanttLog(processes[minIndex].pid, current - 1, current);
         } else {
             current++;
         }
@@ -142,22 +198,27 @@ void SJF_p(Process processes[], int n) {
 }
 
 void Priority(Process processes[], int n) {
+    clearGanttLog();
     int completed = 0, current = 0;
     int minIndex;
     while (completed != n) {
         minIndex = -1;
         for (int i = 0; i < n; i++) {
-            if (processes[i].arrival <= current && (minIndex == -1 || processes[i].priority < processes[minIndex].priority) && processes[i].turnAroundTime == 0) {
+            if (processes[i].arrival <= current && processes[i].remainingTime > 0 && (minIndex == -1 || processes[i].priority < processes[minIndex].priority)) {
                 minIndex = i;
             }
         }
         if (minIndex != -1) {
-            processes[minIndex].startTime = current;
+            if (processes[minIndex].startTime == -1){
+                processes[minIndex].startTime = current;
+            }
             current += processes[minIndex].burstTime;
-            processes[minIndex].waitingTime = current - processes[minIndex].arrival - processes[minIndex].burstTime;
-            processes[minIndex].turnAroundTime = processes[minIndex].waitingTime + processes[minIndex].burstTime;
+            processes[minIndex].remainingTime = 0;
             processes[minIndex].endTime = current;
+            processes[minIndex].waitingTime = processes[minIndex].startTime - processes[minIndex].arrival;
+            processes[minIndex].turnAroundTime = processes[minIndex].endTime - processes[minIndex].arrival;
             completed++;
+            addGanttLog(processes[minIndex].pid, processes[minIndex].startTime, processes[minIndex].endTime);
         } else {
             current++;
         }
@@ -165,7 +226,11 @@ void Priority(Process processes[], int n) {
 }
 
 void Priority_p(Process processes[], int n) {
-    int completed = 0, current = 0, minIndex;
+    clearGanttLog();
+    int completed = 0, current = 0;
+    int minIndex;
+    int prev = -1;
+
     while (completed != n) {
         minIndex = -1;
         for (int i = 0; i < n; i++) {
@@ -178,71 +243,67 @@ void Priority_p(Process processes[], int n) {
             if (processes[minIndex].startTime == -1) {
                 processes[minIndex].startTime = current;
             }
+            if(minIndex != prev){       //preempt된 상황
+                addGanttLog(processes[prev].pid, processes[prev].startTime, current);
+                processes[minIndex].startTime = current;
+            }
             current++;
             processes[minIndex].remainingTime--;
-            if (processes[minIndex].remainingTime == 0) {
+            if (processes[minIndex].remainingTime == 0) {           //process 완료 시
                 processes[minIndex].endTime = current;
                 processes[minIndex].waitingTime = processes[minIndex].endTime - processes[minIndex].arrival - processes[minIndex].burstTime;
                 processes[minIndex].turnAroundTime = processes[minIndex].endTime - processes[minIndex].arrival;
                 completed++;
+                addGanttLog(processes[minIndex].pid, processes[minIndex].startTime, current);
             }
-        } else {
-            current++;
+
+        } 
+        else {
+            current++;      //아무 process도 실행되지 않음
         }
+        prev = minIndex;    //직전 process 확인용
     }
 }
 
 void RR(Process processes[], int n, int quantum) {
+    clearGanttLog();
     int current = 0;
+    int completed = 0;
     int remainingBurstTime[n];
+
     for (int i = 0; i < n; i++) {
         remainingBurstTime[i] = processes[i].burstTime;
     }
-    while (1) {
-        int done = 1;
+    while (completed != n) {
         for (int i = 0; i < n; i++) {
             if (remainingBurstTime[i] > 0) {
-                done = 0;
                 if (remainingBurstTime[i] == processes[i].burstTime) {
                     processes[i].startTime = current;
                 }
                 if (remainingBurstTime[i] > quantum) {
                     current += quantum;
                     remainingBurstTime[i] -= quantum;
+                    addGanttLog(processes[i].pid, current - quantum, current);
                 } else {
                     current += remainingBurstTime[i];
+                    addGanttLog(processes[i].pid, current - remainingBurstTime[i], current);
                     processes[i].waitingTime = current - processes[i].arrival - processes[i].burstTime;
-                    processes[i].turnAroundTime = processes[i].waitingTime + processes[i].burstTime;
+                    processes[i].turnAroundTime = current - processes[i].arrival;
                     remainingBurstTime[i] = 0;
                     processes[i].endTime = current;
+                    completed++;
                 }
             }
         }
-        if (done == 1)
-            break;
     }
 }
 
-// Gantt 차트를 출력하는 함수
-void printGanttChart(Process processes[], int n) {
-    printf("Gantt Chart:\n|");
-    for (int i = 0; i < n; i++) {
-        printf(" P%d |", processes[i].pid);
-    }
-    printf("\n");
-
-    for (int i = 0; i < n; i++) {
-        printf("%d    ", processes[i].startTime);
-    }
-    printf("%d\n", processes[n-1].endTime);
-}
-
-// 각 스케줄링 알고리즘의 평균 대기 시간과 평균 턴어라운드 시간을 계산하는 함수
+// 각 scheduling 알고리즘의 평균 waiting time과 평균 turnaround time을 계산하는 함수
 void Evaluation(Process processes[], int n) {
     Process processesCopy[n];
     int totalWaitingTime, totalTurnAroundTime;
     float avgWaitingTime, avgTurnAroundTime;
-    int quantum = 4;  // Round Robin 타임 퀀텀
+    int quantum = 4;  // Round Robin time quantum
 
     // FCFS
     for (int i = 0; i < n; i++) processesCopy[i] = processes[i];
@@ -337,7 +398,7 @@ int main() {
     Process processes[n];
     Create_Process(processes, n);
 
-    printf("PID\tArrivalT\tBurstT\tIOBurstT\tPriority\n");
+    printf("PID\tA_T\tB_T\tIO_T\tPr\n");
     for (int i = 0; i < n; i++) {
         printf("%d\t%d\t%d\t%d\t%d\n", processes[i].pid, processes[i].arrival, processes[i].burstTime, processes[i].ioBurstTime, processes[i].priority);
     }
