@@ -73,10 +73,10 @@ void enqueueWaiting(Process p) {
 void Config(Process processes[], int n) {
     readyCount = 0;
     waitingCount = 0;
-    int fc = 0;         //먼저 온 process index
+    int fc;         //먼저 온 process index
     
     for (int i = 0; i < n; i++) {           
-        enqueueReady(processes[fc]);
+        enqueueReady(processes[i]);
     }
 
     for (int i = 0; i < n-1; i++){
