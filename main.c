@@ -28,6 +28,7 @@ typedef struct {
 Process readyQueue[MAX_PROCESSES];
 Process waitingQueue[MAX_PROCESSES];
 GanttLog ganttlog[MAX_LOG_ENTRIES];
+Process idle;
 int readyCount = 0;
 int waitingCount = 0;
 int logCount = 0;
@@ -128,6 +129,7 @@ void FCFS(Process processes[], int n) {
     int current = 0;
     for (int i = 0; i < n; i++) {
         if (current < processes[i].arrival) {
+            addGanttLog(idle.pid, current, processes[i].arrival);
             current = processes[i].arrival;
         }
         processes[i].startTime = current;
@@ -170,6 +172,12 @@ void SJF(Process processes[], int n) {
             addGanttLog(processes[shortestIndex].pid, processes[shortestIndex].startTime, processes[shortestIndex].endTime);
         } else {
             current++;
+            if(logCount == 0 || ganttlog[logCount-1].pid != 0){
+                addGanttLog(idle.pid, current - 1, current);
+            }
+            else{
+                ganttlog[logCount-1].endTime = current;
+            }
         }
     }
 }
@@ -207,6 +215,12 @@ void SJF_p(Process processes[], int n) {
             }
         } else {
             current++;
+            if(logCount == 0 || ganttlog[logCount-1].pid != 0){
+                addGanttLog(idle.pid, current - 1, current);
+            }
+            else{
+                ganttlog[logCount-1].endTime = current;
+            }
         }
         prev = minIndex;
     }
@@ -236,6 +250,12 @@ void Priority(Process processes[], int n) {
             addGanttLog(processes[minIndex].pid, processes[minIndex].startTime, processes[minIndex].endTime);
         } else {
             current++;
+            if(logCount == 0 || ganttlog[logCount-1].pid != 0){
+                addGanttLog(idle.pid, current - 1, current);
+            }
+            else{
+                ganttlog[logCount-1].endTime = current;
+            }
         }
     }
 }
@@ -277,6 +297,12 @@ void Priority_p(Process processes[], int n) {
         } 
         else {
             current++;      //아무 process도 실행되지 않음
+            if(logCount == 0 || ganttlog[logCount-1].pid != 0){
+                addGanttLog(idle.pid, current - 1, current);
+            }
+            else{
+                ganttlog[logCount-1].endTime = current;
+            }
         }
         prev = minIndex;    //직전 process 확인용
     }
@@ -316,6 +342,12 @@ void RR(Process processes[], int n, int quantum) {
         }
         if(emptycheck == n){
             current++;
+            if(logCount == 0 || ganttlog[logCount-1].pid != 0){
+                addGanttLog(idle.pid, current - 1, current);
+            }
+            else{
+                ganttlog[logCount-1].endTime = current;
+            }
         }
     }
 }
@@ -326,6 +358,9 @@ void Evaluation(Process processes[], int n) {
     int totalWaitingTime, totalTurnAroundTime;
     float avgWaitingTime, avgTurnAroundTime;
     int quantum = 4;  // Round Robin time quantum
+    idle.pid = 0;
+    idle.startTime = -1;
+    idle.endTime = 0;
 
     // FCFS
     for (int i = 0; i < n; i++) processesCopy[i] = readyQueue[i];
