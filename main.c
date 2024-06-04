@@ -144,32 +144,32 @@ void FCFS(Process processes[], int n) {
 void SJF(Process processes[], int n) {
     clearGanttLog();
     int completed = 0, current = 0;
-    int minIndex, shortestIndex, minBurst;
+    int minIndex, minBurst;
 
     while (completed != n) {
-        shortestIndex = -1;
+        minIndex = -1;
         minBurst = 99999;
 
         for (int i = 0; i < n; i++) {
             if (processes[i].arrival <= current && processes[i].remainingTime > 0) {
                 if(processes[i].burstTime < minBurst){
                     minBurst = processes[i].burstTime;
-                    shortestIndex = i;
+                    minIndex = i;
                 }
             }
         }
 
-        if (shortestIndex != -1) {
-            if(processes[shortestIndex].startTime == -1){
-                processes[shortestIndex].startTime = current;
+        if (minIndex != -1) {
+            if(processes[minIndex].startTime == -1){
+                processes[minIndex].startTime = current;
             }
-            current += processes[shortestIndex].burstTime;
-            processes[shortestIndex].remainingTime = 0;
-            processes[shortestIndex].endTime = current;
-            processes[shortestIndex].waitingTime = processes[shortestIndex].startTime - processes[shortestIndex].arrival;
-            processes[shortestIndex].turnAroundTime = processes[shortestIndex].endTime + processes[shortestIndex].arrival;
+            current += processes[minIndex].burstTime;
+            processes[minIndex].remainingTime = 0;
+            processes[minIndex].endTime = current;
+            processes[minIndex].waitingTime = processes[minIndex].startTime - processes[minIndex].arrival;
+            processes[minIndex].turnAroundTime = processes[minIndex].endTime + processes[minIndex].arrival;
             completed++;
-            addGanttLog(processes[shortestIndex].pid, processes[shortestIndex].startTime, processes[shortestIndex].endTime);
+            addGanttLog(processes[minIndex].pid, processes[minIndex].startTime, processes[minIndex].endTime);
         } else {
             current++;
             if(logCount == 0 || ganttlog[logCount-1].pid != 0){
@@ -318,7 +318,7 @@ void RR(Process processes[], int n, int quantum) {
         emptycheck = 0;
         for (int i = 0; i < n; i++) {
             if (processes[i].remainingTime > 0 && processes[i].arrival <= current) {
-                if (processes[i].remainingTime == processes[i].burstTime) {
+                if (processes[i].remainingTime == processes[i].burstTime) {                 //process 최초 실행 시
                     processes[i].startTime = current;
                 }
 
